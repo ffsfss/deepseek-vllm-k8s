@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vllm-config
+  namespace: llm
+  labels:
+    app.kubernetes.io/name: deepseek-vllm
+    app.kubernetes.io/component: inference
+data:
+  MODEL_REPOSITORY: "deepseek-ai/deepseek-coder-1.3b-instruct"
+  MODEL_REVISION: "e063262dac8366fc1f28a4da0ff3c50ea66259ca"
+  MODEL_PATH: "/models/deepseek-coder"
+  SERVED_MODEL_NAME: "deepseek-coder"
+
+  VLLM_DTYPE: "bfloat16"
+  MAX_MODEL_LEN: "2048"
+  MAX_NUM_SEQS: "2"
+  MAX_NUM_BATCHED_TOKENS: "512"
+  VLLM_CPU_KVCACHE_SPACE: "1"
+
+  VLLM_LOGGING_LEVEL: "INFO"
+  HF_HUB_OFFLINE: "1"
+  TRANSFORMERS_OFFLINE: "1"
