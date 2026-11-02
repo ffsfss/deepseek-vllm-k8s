@@ -12,11 +12,12 @@ data:
   MODEL_PATH: "/models/deepseek-coder"
   SERVED_MODEL_NAME: "deepseek-coder"
 
-  VLLM_DTYPE: "bfloat16"
+  MODEL_DTYPE: "bfloat16"
   MAX_MODEL_LEN: "2048"
   MAX_NUM_SEQS: "2"
   MAX_NUM_BATCHED_TOKENS: "512"
   VLLM_CPU_KVCACHE_SPACE: "1"
+  OMP_NUM_THREADS: "8"
 
   VLLM_LOGGING_LEVEL: "INFO"
   HF_HUB_OFFLINE: "1"

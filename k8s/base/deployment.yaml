@@ -1,0 +1,295 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm
+  namespace: llm
+  labels:
+    app.kubernetes.io/name: deepseek-vllm
+    app.kubernetes.io/component: inference
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+
+  strategy:
+    type: Recreate
+
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: deepseek-vllm
+      app.kubernetes.io/component: inference
+
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: deepseek-vllm
+        app.kubernetes.io/component: inference
+
+    spec:
+      enableServiceLinks: false
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 60
+
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+
+      initContainers:
+        - name: model-downloader
+          image: deepseek-downloader:0.1.0
+          imagePullPolicy: IfNotPresent
+
+          env:
+            - name: MODEL_REPOSITORY
+              valueFrom:
+                configMapKeyRef:
+                  name: vllm-config
+                  key: MODEL_REPOSITORY
+
+            - name: MODEL_REVISION
+              valueFrom:
+                configMapKeyRef:
+                  name: vllm-config
+                  key: MODEL_REVISION
+
+            - name: MODEL_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: vllm-config
+                  key: MODEL_PATH
+
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: llm-secrets
+                  key: HF_TOKEN
+
+            - name: HF_HUB_DISABLE_XET
+              value: "1"
+
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+
+          volumeMounts:
+            - name: model-cache
+              mountPath: /models
+
+            - name: runtime-cache
+              mountPath: /home/app/.cache
+
+            - name: temporary-files
+              mountPath: /tmp
+
+      containers:
+        - name: vllm
+          image: deepseek-vllm:0.1.1
+          imagePullPolicy: IfNotPresent
+
+          args:
+            - "$(MODEL_PATH)"
+            - "--served-model-name"
+            - "$(SERVED_MODEL_NAME)"
+            - "--host"
+            - "0.0.0.0"
+            - "--port"
+            - "8000"
+            - "--dtype"
+            - "$(MODEL_DTYPE)"
+            - "--max-model-len"
+            - "$(MAX_MODEL_LEN)"
+            - "--max-num-seqs"
+            - "$(MAX_NUM_SEQS)"
+            - "--max-num-batched-tokens"
+            - "$(MAX_NUM_BATCHED_TOKENS)"
+            - "--logging-config.pylogging_config_file"
+            - "/app/config/logging_config.json"
+            - "--no-enable-log-requests"
+            - "--disable-access-log-for-endpoints"
+            - "/health,/metrics,/ping"
+
+          env:
+            - name: XDG_CACHE_HOME
+              value: "/home/app/.cache"
+
+            - name: TRITON_CACHE_DIR
+              value: "/home/app/.cache/triton"
+
+            - name: TORCHINDUCTOR_CACHE_DIR
+              value: "/home/app/.cache/torchinductor"
+
+            - name: MODEL_PATH
+              valueFrom:
+                configMapKeyRef:
+                  name: vllm-config
+                  key: MODEL_PATH
+
+            - name: SERVED_MODEL_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: vllm-config
+                  key: SERVED_MODEL_NAME
+
+            - name: MODEL_DTYPE
+              valueFrom:
+                configMapKeyRef:
+                  name: vllm-config
+                  key: MODEL_DTYPE
+
+            - name: MAX_MODEL_LEN
+              valueFrom:
+                configMapKeyRef:
+                  name: vllm-config
+                  key: MAX_MODEL_LEN
+
+            - name: MAX_NUM_SEQS
+              valueFrom:
+                configMapKeyRef:
+                  name: vllm-config
+                  key: MAX_NUM_SEQS
+
+            - name: MAX_NUM_BATCHED_TOKENS
+              valueFrom:
+                configMapKeyRef:
+                  name: vllm-config
+                  key: MAX_NUM_BATCHED_TOKENS
+
+            - name: VLLM_CPU_KVCACHE_SPACE
+              valueFrom:
+                configMapKeyRef:
+                  name: vllm-config
+                  key: VLLM_CPU_KVCACHE_SPACE
+
+            - name: OMP_NUM_THREADS
+              valueFrom:
+                configMapKeyRef:
+                  name: vllm-config
+                  key: OMP_NUM_THREADS
+
+            - name: VLLM_LOGGING_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: vllm-config
+                  key: VLLM_LOGGING_LEVEL
+
+            - name: HF_HUB_OFFLINE
+              valueFrom:
+                configMapKeyRef:
+                  name: vllm-config
+                  key: HF_HUB_OFFLINE
+
+            - name: TRANSFORMERS_OFFLINE
+              valueFrom:
+                configMapKeyRef:
+                  name: vllm-config
+                  key: TRANSFORMERS_OFFLINE
+
+            - name: VLLM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: llm-secrets
+                  key: VLLM_API_KEY
+
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
+          resources:
+            requests:
+              cpu: "4"
+              memory: "5Gi"
+            limits:
+              cpu: "8"
+              memory: "7Gi"
+
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 180
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 30
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          volumeMounts:
+            - name: model-cache
+              mountPath: /models
+              readOnly: true
+
+            - name: runtime-cache
+              mountPath: /home/app/.cache
+
+            - name: triton-cache
+              mountPath: /home/app/.triton
+
+            - name: temporary-files
+              mountPath: /tmp
+
+            - name: shared-memory
+              mountPath: /dev/shm
+
+      volumes:
+        - name: model-cache
+          persistentVolumeClaim:
+            claimName: model-cache
+
+        - name: runtime-cache
+          emptyDir:
+            sizeLimit: 4Gi
+        
+        - name: triton-cache
+          emptyDir:
+            sizeLimit: 2Gi
+
+        - name: temporary-files
+          emptyDir:
+            sizeLimit: 2Gi
+
+        - name: shared-memory
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Gi

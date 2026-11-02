@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "disable_existing_loggers": false,
+  "filters": {
+    "redact_sensitive_data": {
+      "()": "redacting_filter.RedactingFilter"
+    }
+  },
+  "formatters": {
+    "standard": {
+      "format": "%(asctime)s %(levelname)s %(name)s %(message)s"
+    },
+    "access": {
+      "format": "%(asctime)s %(levelname)s access %(message)s"
+    }
+  },
+  "handlers": {
+    "console": {
+      "class": "logging.StreamHandler",
+      "level": "INFO",
+      "formatter": "standard",
+      "filters": [
+        "redact_sensitive_data"
+      ],
+      "stream": "ext://sys.stdout"
+    },
+    "access": {
+      "class": "logging.StreamHandler",
+      "level": "INFO",
+      "formatter": "access",
+      "filters": [
+        "redact_sensitive_data"
+      ],
+      "stream": "ext://sys.stdout"
+    }
+  },
+  "loggers": {
+    "vllm": {
+      "handlers": [
+        "console"
+      ],
+      "level": "INFO",
+      "propagate": false
+    },
+    "uvicorn": {
+      "handlers": [
+        "console"
+      ],
+      "level": "INFO",
+      "propagate": false
+    },
+    "uvicorn.error": {
+      "handlers": [
+        "console"
+      ],
+      "level": "INFO",
+      "propagate": false
+    },
+    "uvicorn.access": {
+      "handlers": [
+        "access"
+      ],
+      "level": "INFO",
+      "propagate": false
+    }
+  },
+  "root": {
+    "handlers": [
+      "console"
+    ],
+    "level": "WARNING"
+  }
+}
