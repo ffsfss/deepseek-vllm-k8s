@@ -1,0 +1,25 @@
+#Секреты
+.env
+secret.env
+*.token
+*.secret
+
+#Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+#Результаты тестирования
+bench/results/
+*.log
+
+#Редакторы
+.idea/
+.vscode/
+
+#Системные файлы
+.DS_Store
+Thumbs.db
