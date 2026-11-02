@@ -95,17 +95,13 @@ WSL swap: 4 ГБ
 ├── bench
 │   └── load_test.py
 ├── k8s
-│   ├── base
-│   │   ├── namespace.yaml
-│   │   ├── configmap.yaml
-│   │   ├── pvc.yaml
-│   │   ├── deployment.yaml
-│   │   ├── service.yaml
-│   │   └── kustomization.yaml
-│   └── overlays
-│       └── minikube
-│           ├── kustomization.yaml
-│           └── resources-patch.yaml
+│   └── base
+│       ├── namespace.yaml
+│       ├── configmap.yaml
+│       ├── pvc.yaml
+│       ├── deployment.yaml
+│       ├── service.yaml
+│       └── kustomization.yaml
 ├── secret.env.example
 └── README.md
 ```
